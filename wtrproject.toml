@@ -1,0 +1,10 @@
+format_version = 1
+
+[project]
+name = "chassis"
+ioc_file = "chassis.ioc"
+
+[dependencies]
+packages = [
+    "utils",
+]
