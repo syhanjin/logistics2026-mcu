@@ -1,5 +1,5 @@
 #include "static_arena.hpp"
-#include <cstdio>
+#include <cstddef>
 
 // 1. 定义一个足够大的静态分配器（例如 64KB）
 // 放在静态区 (.bss)
@@ -23,6 +23,7 @@ void* operator new(const std::size_t size)
 // 必须实现对应的 delete (即便它什么都不做)
 void operator delete(void* p) noexcept
 {
+    (void)p;
     // 线性分配器无法回收单块内存，故此处留空
 }
 
@@ -36,3 +37,11 @@ void operator delete[](void* p) noexcept
 {
     ::operator delete(p);
 }
+
+namespace Arena
+{
+double get_usage_ratio()
+{
+    return g_boot_arena.usage_ratio();
+}
+} // namespace Arena

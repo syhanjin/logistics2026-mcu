@@ -1,0 +1,171 @@
+/**
+ * @file    Mecanum4.cpp
+ * @author  syhanjin
+ * @date    2026-01-31
+ * @brief   四轮麦克纳姆底盘运动学实现。
+ */
+#include "Mecanum4.hpp"
+
+/**
+ * rad/s to round/min
+ * @param __RPS__ rad/s
+ */
+#define RPS2RPM(__RPS__) ((__RPS__) * 60.0f / (2 * 3.14159265358979323846f))
+
+#define DEG2RAD(__DEG__) ((__DEG__) * (float)3.14159265358979323846f / 180.0f)
+
+#define RPM2DPS(__RPM__) ((__RPM__) / 60.0f * 360.0f)
+
+namespace chassis::motion
+{
+// 统一把枚举轮序映射为数组下标，避免在公式里直接写硬编码数字。
+static constexpr size_t idx(Mecanum4::WheelType w)
+{
+    return static_cast<size_t>(w);
+}
+
+Mecanum4::Mecanum4(const Config& driver_cfg) :
+    type_(driver_cfg.chassis_type), wheel_radius_(driver_cfg.wheel_radius * 1e-3f)
+{
+    // 配置阶段统一把外部使用的 mm 转成内部计算使用的 m。
+    const float half_x = driver_cfg.wheel_distance_x * 1e-3f * 0.5f;
+    const float half_y = driver_cfg.wheel_distance_y * 1e-3f * 0.5f;
+
+    // k_omega 把角速度项折算成线速度项，具体形式取决于轮子安装构型。
+    if (type_ == ChassisType::OType)
+        k_omega_ = half_x + half_y;
+    else if (type_ == ChassisType::XType)
+        k_omega_ = half_y - half_x;
+
+    wheel_[idx(WheelType::FrontRight)] = driver_cfg.wheel_front_right;
+    wheel_[idx(WheelType::FrontLeft)]  = driver_cfg.wheel_front_left;
+    wheel_[idx(WheelType::RearLeft)]   = driver_cfg.wheel_rear_left;
+    wheel_[idx(WheelType::RearRight)]  = driver_cfg.wheel_rear_right;
+}
+bool Mecanum4::enable()
+{
+    bool enabled = true;
+
+    // 只要有任意一个轮子使能失败，就整体回滚，避免底盘处于半使能状态。
+    for (const auto& w : wheel_)
+        enabled &= w->enable();
+
+    if (!enabled)
+    {
+        for (const auto& w : wheel_)
+            w->disable();
+    }
+    else
+    {
+        // 进行一次角度归零，用于计算正解
+        for (const auto& w : wheel_)
+            w->getMotor()->resetAngle();
+    }
+    enabled_ = enabled;
+    return enabled;
+}
+void Mecanum4::disable()
+{
+    for (const auto& w : wheel_)
+        w->disable();
+    enabled_ = false;
+}
+
+/**
+ * 设置底盘速度
+ */
+void Mecanum4::applyVelocity(const Velocity& velocity)
+{
+    const auto& [vx, vy, wz] = velocity;
+    if (type_ == ChassisType::OType)
+    {
+        /** Mecanum4 O 型运动学解算
+         * w_fr = (+ vx + vy + (w + h) * ω) / r
+         * w_fl = (+ vx - vy - (w + h) * ω) / r
+         * w_rl = (+ vx + vy - (w + h) * ω) / r
+         * w_rr = (+ vx - vy + (w + h) * ω) / r
+         */
+        wheel_[idx(WheelType::FrontRight)]->setRef(
+                RPS2RPM((vx + vy + k_omega_ * DEG2RAD(wz)) / wheel_radius_));
+        wheel_[idx(WheelType::FrontLeft)]->setRef(
+                RPS2RPM((vx - vy - k_omega_ * DEG2RAD(wz)) / wheel_radius_));
+        wheel_[idx(WheelType::RearLeft)]->setRef(
+                RPS2RPM((vx + vy - k_omega_ * DEG2RAD(wz)) / wheel_radius_));
+        wheel_[idx(WheelType::RearRight)]->setRef(
+                RPS2RPM((vx - vy + k_omega_ * DEG2RAD(wz)) / wheel_radius_));
+    }
+    else if (type_ == ChassisType::XType)
+    {
+        /** Mecanum4 X 型运动学解算
+         * w_fr = (+ vx - vy + (w - h) * ω) / r
+         * w_fl = (+ vx + vy - (w - h) * ω) / r
+         * w_rl = (+ vx - vy - (w - h) * ω) / r
+         * w_rr = (+ vx + vy + (w - h) * ω) / r
+         */
+        wheel_[idx(WheelType::FrontRight)]->setRef(
+                RPS2RPM((vx - vy + k_omega_ * DEG2RAD(wz)) / wheel_radius_));
+        wheel_[idx(WheelType::FrontLeft)]->setRef(
+                RPS2RPM((vx + vy - k_omega_ * DEG2RAD(wz)) / wheel_radius_));
+        wheel_[idx(WheelType::RearLeft)]->setRef(
+                RPS2RPM((vx - vy - k_omega_ * DEG2RAD(wz)) / wheel_radius_));
+        wheel_[idx(WheelType::RearRight)]->setRef(
+                RPS2RPM((vx + vy + k_omega_ * DEG2RAD(wz)) / wheel_radius_));
+    }
+}
+
+/**
+ * 底盘控制更新函数
+ *
+ * 本函数自动处理控制逻辑，并依序调用每个轮子的 PID 更新函数
+ *
+ * @note 推荐控制调用频率 1kHz，调用频率将会影响轮子的 PID 参数
+ */
+void Mecanum4::update()
+{
+    if (!enabled())
+        return;
+    for (const auto& wheel : wheel_)
+        wheel->update();
+}
+
+Velocity Mecanum4::forwardGetVelocity()
+{
+    Velocity vel{};
+    // vx 对四个轮子的贡献同号，因此可以直接对四轮速度求和后平均。
+    vel.vx = RPM2DPS(wheel_radius_ * 0.25f *
+                     DEG2RAD(wheel_[idx(WheelType::FrontRight)]->getMotor()->getVelocity() +
+                             wheel_[idx(WheelType::FrontLeft)]->getMotor()->getVelocity() +
+                             wheel_[idx(WheelType::RearRight)]->getMotor()->getVelocity() +
+                             wheel_[idx(WheelType::RearLeft)]->getMotor()->getVelocity()));
+
+    if (type_ == ChassisType::OType)
+    {
+        // O 型和 X 型在 vy / wz 的符号组合不同，因此分别写开更容易校验。
+        vel.wz = RPM2DPS(wheel_radius_ / (4 * k_omega_) *
+                         (wheel_[idx(WheelType::FrontRight)]->getMotor()->getVelocity() -
+                          wheel_[idx(WheelType::FrontLeft)]->getMotor()->getVelocity() +
+                          wheel_[idx(WheelType::RearRight)]->getMotor()->getVelocity() -
+                          wheel_[idx(WheelType::RearLeft)]->getMotor()->getVelocity()));
+        vel.vy = RPM2DPS(wheel_radius_ * 0.25f *
+                         DEG2RAD(wheel_[idx(WheelType::FrontRight)]->getMotor()->getVelocity() -
+                                 wheel_[idx(WheelType::FrontLeft)]->getMotor()->getVelocity() -
+                                 wheel_[idx(WheelType::RearRight)]->getMotor()->getVelocity() +
+                                 wheel_[idx(WheelType::RearLeft)]->getMotor()->getVelocity()));
+    }
+    else if (type_ == ChassisType::XType)
+    {
+        vel.wz = RPM2DPS(wheel_radius_ / (4 * k_omega_) *
+                         (wheel_[idx(WheelType::FrontRight)]->getMotor()->getVelocity() -
+                          wheel_[idx(WheelType::FrontLeft)]->getMotor()->getVelocity() -
+                          wheel_[idx(WheelType::RearRight)]->getMotor()->getVelocity() +
+                          wheel_[idx(WheelType::RearLeft)]->getMotor()->getVelocity()));
+        vel.vy = RPM2DPS(wheel_radius_ / (4 * k_omega_) *
+                         DEG2RAD(-wheel_[idx(WheelType::FrontRight)]->getMotor()->getVelocity() +
+                                 wheel_[idx(WheelType::FrontLeft)]->getMotor()->getVelocity() +
+                                 wheel_[idx(WheelType::RearRight)]->getMotor()->getVelocity() -
+                                 wheel_[idx(WheelType::RearLeft)]->getMotor()->getVelocity()));
+    }
+    return vel;
+}
+
+} // namespace chassis::motion

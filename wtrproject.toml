@@ -6,5 +6,18 @@ ioc_file = "chassis.ioc"
 
 [dependencies]
 packages = [
+    "Chassis::ControllerMaster",
+    "Chassis::ControllerSlave",
+    "Chassis::Mecanum4",
+    "ChassisLocalization::EKF",
+    "ChassisLocalization::JustEncoder",
+    "MotorDrivers::Controller",
+    "MotorDrivers::DM",
+    "SensorGyro::HWT101CT",
+    "libs::CRC",
+    "libs::RingBuffer",
+    "protocol::UartRxSync",
+    "services::Watchdog",
+    "traits",
     "utils",
 ]
