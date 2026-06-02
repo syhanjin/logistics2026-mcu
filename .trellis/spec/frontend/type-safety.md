@@ -1,51 +1,10 @@
 # Type Safety
 
-> Type safety patterns in this project.
+> Not applicable to frontend; C/C++ firmware type safety lives in backend specs.
 
----
+This repository uses C and C++17, not TypeScript. For current work, prefer
+explicit fixed-width integer types for protocol fields, `constexpr` for frame
+lengths, and compile-time checks where practical.
 
-## Overview
-
-<!--
-Document your project's type safety conventions here.
-
-Questions to answer:
-- What type system do you use?
-- How are types organized?
-- What validation library do you use?
-- How do you handle type inference?
--->
-
-(To be filled by the team)
-
----
-
-## Type Organization
-
-<!-- Where types are defined, shared types vs local types -->
-
-(To be filled by the team)
-
----
-
-## Validation
-
-<!-- Runtime validation patterns (Zod, Yup, io-ts, etc.) -->
-
-(To be filled by the team)
-
----
-
-## Common Patterns
-
-<!-- Type utilities, generics, type guards -->
-
-(To be filled by the team)
-
----
-
-## Forbidden Patterns
-
-<!-- any, type assertions, etc. -->
-
-(To be filled by the team)
+If a frontend is added later, replace this file with real TypeScript conventions
+from that codebase.

@@ -6,7 +6,9 @@
 
 ## Overview
 
-This directory contains guidelines for frontend development. Fill in each file with your project's specific conventions.
+This repository has no web, mobile, or UI frontend. These files are kept only
+because Trellis initialized a fullstack template. Future agents should not apply
+frontend conventions to firmware work in this repository.
 
 ---
 
@@ -14,25 +16,20 @@ This directory contains guidelines for frontend development. Fill in each file w
 
 | Guide | Description | Status |
 |-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Module organization and file layout | To fill |
-| [Component Guidelines](./component-guidelines.md) | Component patterns, props, composition | To fill |
-| [Hook Guidelines](./hook-guidelines.md) | Custom hooks, data fetching patterns | To fill |
-| [State Management](./state-management.md) | Local state, global state, server state | To fill |
-| [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |
-| [Type Safety](./type-safety.md) | Type patterns, validation | To fill |
+| [Directory Structure](./directory-structure.md) | Frontend applicability | Not applicable |
+| [Component Guidelines](./component-guidelines.md) | Component applicability | Not applicable |
+| [Hook Guidelines](./hook-guidelines.md) | Hook applicability | Not applicable |
+| [State Management](./state-management.md) | State management applicability | Not applicable |
+| [Quality Guidelines](./quality-guidelines.md) | Frontend quality applicability | Not applicable |
+| [Type Safety](./type-safety.md) | Frontend type-safety applicability | Not applicable |
 
 ---
 
-## How to Fill These Guidelines
+## Rule
 
-For each guideline file:
-
-1. Document your project's **actual conventions** (not ideals)
-2. Include **code examples** from your codebase
-3. List **forbidden patterns** and why
-4. Add **common mistakes** your team has made
-
-The goal is to help AI assistants and new team members understand how YOUR project works.
+If a future task adds a real frontend, replace these not-applicable files with
+actual conventions from that frontend codebase. Until then, use the backend
+firmware specs for all implementation work.
 
 ---
 

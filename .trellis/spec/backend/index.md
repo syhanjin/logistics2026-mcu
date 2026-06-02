@@ -6,7 +6,9 @@
 
 ## Overview
 
-This directory contains guidelines for backend development. Fill in each file with your project's specific conventions.
+This repository is an STM32 C/C++ firmware project. Treat "backend" specs as the
+authoritative firmware guidelines for `UserCode/`, CubeMX generated files, and
+WTR-managed embedded modules.
 
 ---
 
@@ -14,11 +16,11 @@ This directory contains guidelines for backend development. Fill in each file wi
 
 | Guide | Description | Status |
 |-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Module organization and file layout | To fill |
-| [Database Guidelines](./database-guidelines.md) | ORM patterns, queries, migrations | To fill |
-| [Error Handling](./error-handling.md) | Error types, handling strategies | To fill |
-| [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |
-| [Logging Guidelines](./logging-guidelines.md) | Structured logging, log levels | To fill |
+| [Directory Structure](./directory-structure.md) | Module organization and file layout | Active |
+| [Database Guidelines](./database-guidelines.md) | Persistent storage applicability | Active |
+| [Error Handling](./error-handling.md) | Embedded error handling and fail-fast rules | Active |
+| [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns, validation | Active |
+| [Logging Guidelines](./logging-guidelines.md) | Firmware observability constraints | Active |
 | [Embedded Firmware Contracts](./embedded-firmware-contracts.md) | STM32 chassis firmware protocol, peripheral, and module contracts | Active |
 
 ---
