@@ -85,7 +85,7 @@ void initLocCtrl(const chassis::Posture& init_posture)
     if constexpr (!ProjectParts::EnableWheelChassis)
         return;
 
-    if (loc != nullptr || master_ctrl != nullptr || slave_ctrl != nullptr || motion == nullptr)
+    if (loc != nullptr || slave_ctrl != nullptr || motion == nullptr)
         return;
 
     if constexpr (ProjectParts::EnableEkfLocalization)
@@ -108,7 +108,6 @@ void initLocCtrl(const chassis::Posture& init_posture)
     if (loc == nullptr)
         return;
 
-    master_ctrl = new MasterController(*motion, *loc, Config::Control::masterCfg);
     if constexpr (ProjectParts::EnableSlaveControl)
         slave_ctrl = new SlaveController(*motion, *loc, Config::Control::slavePDCfg);
 }
@@ -135,51 +134,25 @@ void enable()
     if constexpr (!ProjectParts::EnableWheelChassis)
         return;
 
-    if (master_ctrl == nullptr || !master_ctrl->enable())
+    if (slave_ctrl == nullptr || !slave_ctrl->enable())
         Error_Handler();
 
-    control_mode = ControlMode::Master;
+    control_mode = ControlMode::Slave;
 }
 
 void stop()
 {
-    if (master_ctrl != nullptr)
-        master_ctrl->stop();
     if (slave_ctrl != nullptr)
     {
         slave_ctrl->stop();
         slave_ctrl->clearTrajectory();
     }
-}
-
-bool switchToMaster()
-{
-    if (master_ctrl == nullptr)
-        return false;
-
-    if (slave_ctrl != nullptr)
-    {
-        slave_ctrl->stop();
-        slave_ctrl->clearTrajectory();
-        slave_ctrl->releaseControl();
-    }
-
-    const bool acquired = master_ctrl->acquireControl();
-    if (acquired)
-        control_mode = ControlMode::Master;
-    return acquired;
 }
 
 bool switchToSlave()
 {
     if (slave_ctrl == nullptr)
         return false;
-
-    if (master_ctrl != nullptr)
-    {
-        master_ctrl->stop();
-        master_ctrl->releaseControl();
-    }
 
     slave_ctrl->clearTrajectory();
     const bool acquired = slave_ctrl->acquireControl();
@@ -198,24 +171,12 @@ bool pushSlaveTrajectoryPoint(const SlaveController::TrajectoryPoint& point)
 
 void update_1kHz()
 {
-    static uint32_t master_error_prescaler_500Hz = 0;
-
     if (loc_ekf != nullptr)
         loc_ekf->update();
     else if (loc_encoder != nullptr)
         loc_encoder->update(0.001f);
 
-    if (control_mode == ControlMode::Master && master_ctrl != nullptr)
-    {
-        ++master_error_prescaler_500Hz;
-        if (master_error_prescaler_500Hz >= 2)
-        {
-            master_ctrl->errorUpdate();
-            master_error_prescaler_500Hz = 0;
-        }
-        master_ctrl->controllerUpdate();
-    }
-    else if (control_mode == ControlMode::Slave && slave_ctrl != nullptr)
+    if (control_mode == ControlMode::Slave && slave_ctrl != nullptr)
     {
         slave_ctrl->trajectoryUpdate();
         slave_ctrl->errorUpdate();
@@ -225,11 +186,7 @@ void update_1kHz()
         motion->update();
 }
 
-void update_100Hz()
-{
-    if (control_mode == ControlMode::Master && master_ctrl != nullptr)
-        master_ctrl->profileUpdate(0.01f);
-}
+void update_100Hz() {}
 
 } // namespace Chassis
 

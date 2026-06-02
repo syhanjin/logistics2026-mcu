@@ -24,12 +24,6 @@ void TIM_Callback_1kHz_2(TIM_HandleTypeDef* htim)
 
     Device::update_1kHz();
     service::Watchdog::EatAll();
-
-    if (Protocol::pc_rx != nullptr && Chassis::master_ctrl != nullptr &&
-        !Protocol::pc_rx->isConnected() && Chassis::control_mode == Chassis::ControlMode::Master)
-    {
-        Chassis::master_ctrl->setVelocityInBody(chassis::Velocity::zero(), false);
-    }
 }
 
 void TIM_Callback_100Hz(TIM_HandleTypeDef* htim)

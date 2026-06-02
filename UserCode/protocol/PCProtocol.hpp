@@ -1,82 +1,101 @@
 /**
  * @file    PCProtocol.hpp
- * @brief   Pure chassis upper-host protocol receiver/transmitter.
+ * @brief   Pure chassis upper-host protocol receiver.
  */
 #pragma once
 
+#include "IChassisDef.hpp"
 #include "PCCommandDef.hpp"
 #include "UartRxSync.hpp"
 #include "sync/Clock.hpp"
 
 #include <array>
+#include <cstdint>
 
 namespace Protocol
 {
 
-class PCProtocol;
+class LidarPostureProtocol;
+class UpperHostControlProtocol;
 
-struct Frame
+struct LidarPostureFrame
 {
-    PCProtocol*                protocol{};
-    bool                       from_main_protocol{ false };
-    uint32_t                   rx_timestamp{};
-    PCCommand                  cmd{};
-    std::array<uint8_t, 2 * 6> data{};
-    uint32_t                   tx_timestamp{};
-    uint16_t                   crc16{};
+    LidarPostureProtocol* protocol{};
+    uint32_t              rx_timestamp{};
+    chassis::Posture      posture{};
+    uint32_t              lidar_timestamp{};
+    uint32_t              tx_timestamp{};
+    uint16_t              crc16{};
 };
 
-constexpr uint32_t MaxPCProtocolCount = 2;
+struct UpperHostControlFrame
+{
+    uint32_t rx_timestamp{};
 
-class PCProtocol final : public protocol::UartRxSync<HeaderLen, FrameLen>
+    float x{};
+    float y{};
+    float yaw{};
+    float dx{};
+    float dy{};
+    float dyaw{};
+
+    float h{};
+    float dh{};
+
+    float q1{};
+    float q2{};
+    float dq1{};
+    float dq2{};
+
+    uint16_t angle1{};
+    uint16_t angle2{};
+    uint8_t  flags{};
+
+    uint16_t crc16{};
+};
+
+class LidarPostureProtocol final : public protocol::UartRxSync<HeaderLen, LidarFrameLen>
 {
 public:
-    explicit PCProtocol(UART_HandleTypeDef* huart, bool is_main_protocol = false);
+    explicit LidarPostureProtocol(UART_HandleTypeDef* huart);
 
     [[nodiscard]] float transitionDelayMS() const
     {
-        return static_cast<float>(FrameLen) * 10.0f * 1000.0f /
+        return static_cast<float>(LidarFrameLen) * 10.0f * 1000.0f /
                static_cast<float>(huart()->Init.BaudRate);
     }
-
-    [[nodiscard]] bool isMainProtocol() const { return is_main_protocol_; }
-
-    void transmitFeedbackFrame(const std::array<uint8_t, FeedbackFrameLen>& frame);
-    void transmitIdentifyByte();
-    void transmitTaskStep(const std::array<uint8_t, FeedbackFrameLen>& feedback_frame);
-    void transmitCallback();
-
-    bool startTransmit();
-    void errorHandler();
 
 protected:
     static constexpr std::array<uint8_t, HeaderLen> HEADER = { 0xAA, 0xBB };
 
     [[nodiscard]] const std::array<uint8_t, HeaderLen>& header() const override { return HEADER; }
 
-    bool decode(const uint8_t data[PayloadLen]) override;
+    bool decode(const uint8_t data[LidarPayloadLen]) override;
 
     [[nodiscard]] uint32_t timeout() const override { return 250; }
-
-private:
-    enum class TxState
-    {
-        Stopped,
-        DMAActive,
-        Idle,
-    };
-
-    volatile TxState tx_state_{ TxState::Stopped };
-    bool             is_main_protocol_{ false };
-    std::array<uint8_t, 1> identify_tx_buffer_{ IdentifyInitByte };
 };
 
-inline PCProtocol* pc_rx{};
+class UpperHostControlProtocol final : public protocol::UartRxSync<HeaderLen, ControlFrameLen>
+{
+public:
+    explicit UpperHostControlProtocol(UART_HandleTypeDef* huart);
+
+protected:
+    static constexpr std::array<uint8_t, HeaderLen> HEADER = { 0xAA, 0xBB };
+
+    [[nodiscard]] const std::array<uint8_t, HeaderLen>& header() const override { return HEADER; }
+
+    bool decode(const uint8_t data[ControlPayloadLen]) override;
+
+    [[nodiscard]] uint32_t timeout() const override { return 250; }
+};
+
+inline LidarPostureProtocol*    lidar_posture_rx{};
+inline UpperHostControlProtocol* upper_host_control_rx{};
 
 [[nodiscard]] const Sync::Clock& clock();
 
 bool isPcLocalizationConnected();
-bool isUpperHostIdentified();
 
 void init();
 

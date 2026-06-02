@@ -9,7 +9,8 @@
 namespace Protocol::CommandHandler
 {
 
-bool enqueueFrame(const Frame& frame);
+bool enqueueLidarPostureFrame(const LidarPostureFrame& frame);
+bool enqueueUpperHostControlFrame(const UpperHostControlFrame& frame);
 void startTask();
 
 } // namespace Protocol::CommandHandler

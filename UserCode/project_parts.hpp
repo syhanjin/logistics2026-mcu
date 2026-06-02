@@ -24,10 +24,6 @@
 #    define PROJECT_PART_ENABLE_SLAVE_CONTROL 1
 #endif
 
-#ifndef PROJECT_PART_ENABLE_UPPER_HOST_IDENTIFY_INIT
-#    define PROJECT_PART_ENABLE_UPPER_HOST_IDENTIFY_INIT 0
-#endif
-
 namespace ProjectParts
 {
 
@@ -36,13 +32,9 @@ inline constexpr bool EnableGyro         = PROJECT_PART_ENABLE_GYRO != 0;
 inline constexpr bool EnablePcLocalization = PROJECT_PART_ENABLE_PC_LOCALIZATION != 0;
 inline constexpr bool EnablePcControl      = PROJECT_PART_ENABLE_PC_CONTROL != 0;
 inline constexpr bool EnableSlaveControl   = PROJECT_PART_ENABLE_SLAVE_CONTROL != 0;
-inline constexpr bool EnableUpperHostIdentifyInit =
-        PROJECT_PART_ENABLE_UPPER_HOST_IDENTIFY_INIT != 0;
 
 inline constexpr bool EnableUpperHostProtocol =
         EnablePcLocalization || EnablePcControl || EnableSlaveControl;
-inline constexpr bool NeedUpperHostIdentifyInit =
-        EnableUpperHostProtocol && EnableUpperHostIdentifyInit;
 
 inline constexpr bool EnableChassisLocalization = EnableWheelChassis;
 inline constexpr bool EnableJustEncoderLocalization = EnableChassisLocalization && !EnableGyro;

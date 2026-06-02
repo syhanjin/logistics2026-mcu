@@ -12,9 +12,9 @@
 
 namespace config::uart
 {
-constexpr auto AuxControllerHost = &huart1;
+constexpr auto UpperHostControl = &huart1;
 constexpr auto SensorGyroYaw     = &huart2;
-constexpr auto UpperHost         = &huart3;
+constexpr auto LidarPostureHost  = &huart3;
 } // namespace config::uart
 
 namespace Device
