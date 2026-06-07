@@ -1,5 +1,0 @@
-format_version = 1
-name = "EKF"
-pkgname = "ChassisLocalization::EKF"
-version = "0.1.0"
-dependencies = ["Chassis::Core", "Math::EKF", "SensorGyro::HWT101CT", "libs::Concurrency", "libs::Deque"]
